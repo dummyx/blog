@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 import           Data.Monoid (mappend)
 import           Hakyll
+import           Text.Pandoc.Highlighting (Style, breezeDark, styleToCss)
+import           Text.Pandoc.Options      (ReaderOptions (..), WriterOptions (..))
 
 
 --------------------------------------------------------------------------------
@@ -42,6 +44,19 @@ main = hakyll $ do
                 >>= loadAndApplyTemplate "templates/default.html" archiveCtx
                 >>= relativizeUrls -}
 
+    create ["css/syntax.css"] $ do
+        route idRoute
+        compile $ do
+            makeItem $ styleToCss breezeDark
+
+    create ["rss.xml"] $ do
+        route idRoute
+        compile $ do
+            let feedCtx = postCtx `mappend`
+                    constField "description" "This is the post description"
+
+            posts <- fmap (take 10) . recentFirst =<< loadAll "posts/*"
+            renderRss myFeedConfiguration feedCtx posts
 
     match "index.html" $ do
         route idRoute
@@ -64,3 +79,14 @@ postCtx :: Context String
 postCtx =
     dateField "date" "%B %e, %Y" `mappend`
     defaultContext
+
+
+--------------------------------------------------------------------------------
+myFeedConfiguration :: FeedConfiguration
+myFeedConfiguration = FeedConfiguration
+    { feedTitle       = "No Ink Involved"
+    , feedDescription = "Random articles written by a random person."
+    , feedAuthorName  = "dmyx"
+    , feedAuthorEmail = ""
+    , feedRoot        = "http://x17.ink"
+    }
